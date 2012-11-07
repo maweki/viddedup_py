@@ -54,7 +54,7 @@ def getfiles(directory):
             if mime[0] != None and mime[0].startswith('video'):
                 f.append(d)
             else:
-                print f, mime
+                print "ignored:", d, mime
     return f
     
 def md5Checksum(filePath):
@@ -72,22 +72,23 @@ dup_hash = {}
 
 def workvideo(video):
     
+    nulldevice = open(os.devnull, "w")
+
     global args    
     
     md5_hash = {}
             
     TEST_FRAMES = args.frames
     START_TIME = args.starttime
-    print "Working on",video
     tmpdir = tempfile.mkdtemp()
-    print tmpdir
+    print "Working on",video,"in",tmpdir
     ret = subprocess.call(['mplayer', '-nosound', '-vo', 'jpeg:outdir='+tmpdir, '-ss', START_TIME,
-              '-frames', str(TEST_FRAMES), video])
+              '-frames', str(TEST_FRAMES), video], stdout=nulldevice, stderr=nulldevice)
     if (ret != 0):
         print video, "...failed, skipping...\n"
     
     ret = subprocess.call(['mogrify', '-resize', '32x32!', '-threshold', '50%',
-              '-format', 'bmp', os.path.join(tmpdir, '*.jpg')])    
+              '-format', 'bmp', os.path.join(tmpdir, '*.jpg')], stdout=nulldevice, stderr=nulldevice)    
     
     for g in os.listdir(tmpdir):
         if g.endswith('.bmp'):
@@ -97,11 +98,10 @@ def workvideo(video):
                 md5_hash[md5sum].append(video)
             else:
                 md5_hash[md5sum] = [video]
-    subprocess.call(['rm', '-rf', tmpdir])
+    subprocess.call(['rm', '-rf', tmpdir], stdout=nulldevice, stderr=nulldevice)
     return md5_hash
     
 files = getfiles(vid_path)
-print files
 
 
 workers = Pool(cpus)
